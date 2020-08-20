@@ -191,6 +191,14 @@
 //! [Proxy]: ./struct.Proxy.html
 //! [cargo-features]: https://doc.rust-lang.org/stable/cargo/reference/manifest.html#the-features-section
 
+pub use http::header;
+pub use http::Method;
+pub use http::{StatusCode, Version};
+pub use url::Url;
+
+pub use self::error::{Error, Result};
+pub use self::into_url::IntoUrl;
+
 macro_rules! if_wasm {
     ($($item:item)*) => {$(
         #[cfg(target_arch = "wasm32")]
@@ -205,18 +213,11 @@ macro_rules! if_hyper {
     )*}
 }
 
-pub use http::header;
-pub use http::Method;
-pub use http::{StatusCode, Version};
-pub use url::Url;
-
 // universal mods
 #[macro_use]
 mod error;
+mod core;
 mod into_url;
-
-pub use self::error::{Error, Result};
-pub use self::into_url::IntoUrl;
 
 /// Shortcut method to quickly make a `GET` request.
 ///
