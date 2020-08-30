@@ -180,6 +180,21 @@
 //! - **trust-dns**: Enables a trust-dns async resolver instead of default
 //!   threadpool using `getaddrinfo`.
 //!
+//! ## WASM Features
+//!
+//! Some features are not available for the WASM build target (currently only browsers supported).
+//!
+//! - **blocking**
+//! A blocking API is not available, and is in fact impossible in the browser due to JavaScript's design.
+//! JavaScript is single threaded, so if anything "blocks" the thread, then the JS execution (and whole
+//! website) would freeze forever. Instead,
+//! asynchronous tasks like any Promise is enqueued to be executed as a microtask after the JavaScript stack is
+//! cleared.
+//! - any TLS features
+//! TLS is not configurable for browsers, but using the HTTPS scheme will use whatever TLS the browser
+//! is already configured to use.
+//! - **gzip** and **brotli**
+//! The WASM client is backed by the Fetch API, which automatically handles decoding.
 //!
 //! [hyper]: http://hyper.rs
 //! [client]: ./struct.Client.html
@@ -190,6 +205,14 @@
 //! [redirect]: crate::redirect
 //! [Proxy]: ./struct.Proxy.html
 //! [cargo-features]: https://doc.rust-lang.org/stable/cargo/reference/manifest.html#the-features-section
+
+pub use http::header;
+pub use http::Method;
+pub use http::{StatusCode, Version};
+pub use url::Url;
+
+pub use self::error::{Error, Result};
+pub use self::into_url::IntoUrl;
 
 macro_rules! if_wasm {
     ($($item:item)*) => {$(
@@ -205,18 +228,10 @@ macro_rules! if_hyper {
     )*}
 }
 
-pub use http::header;
-pub use http::Method;
-pub use http::{StatusCode, Version};
-pub use url::Url;
-
 // universal mods
 #[macro_use]
 mod error;
 mod into_url;
-
-pub use self::error::{Error, Result};
-pub use self::into_url::IntoUrl;
 
 /// Shortcut method to quickly make a `GET` request.
 ///
@@ -305,6 +320,23 @@ if_hyper! {
 }
 
 if_wasm! {
+    #[cfg(feature = "blocking")]
+    std::compile_error! {
+        "A blocking client is not available in the browser. Refer to the crate documentation WASM Features section."
+    }
+    #[cfg(any(feature = "gzip", feature = "brotli"))]
+    std::compile_error! {
+        "The gzip and brotli features are not available in the browser, as decoding is handled by default. Refer to the crate documentation WASM Features section."
+    }
+    #[cfg(any(
+        feature = "default-tls",
+        feature = "native-tls",
+        feature = "native-tls-vendored",
+        feature = "rustls-tls"))]
+    std::compile_error! {
+        "TLS is not configurable in the browser. Refer to the crate documentation WASM Features section."
+    }
+
     mod wasm;
     mod util;
 
