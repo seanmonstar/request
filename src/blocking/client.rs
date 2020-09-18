@@ -1,7 +1,4 @@
-#[cfg(any(
-    feature = "native-tls",
-    feature = "rustls-tls",
-))]
+#[cfg(any(feature = "native-tls", feature = "rustls-tls",))]
 use std::any::Any;
 use std::convert::TryInto;
 use std::fmt;
@@ -15,12 +12,15 @@ use http::header::HeaderValue;
 use log::{error, trace};
 use tokio::sync::{mpsc, oneshot};
 
+#[cfg(feature = "trust-dns")]
+use crate::dns::DnsProvider;
+use crate::{async_impl, header, redirect, IntoUrl, Method, Proxy};
+#[cfg(feature = "__tls")]
+use crate::{Certificate, Identity};
+
 use super::request::{Request, RequestBuilder};
 use super::response::Response;
 use super::wait;
-use crate::{async_impl, header, IntoUrl, Method, Proxy, redirect};
-#[cfg(feature = "__tls")]
-use crate::{Certificate, Identity};
 
 /// A `Client` to make Requests with.
 ///
@@ -96,9 +96,7 @@ impl ClientBuilder {
         ClientHandle::new(self).map(|handle| Client { inner: handle })
     }
 
-
     // Higher-level options
-
 
     /// Sets the `User-Agent` header to be used by this client.
     ///
@@ -506,10 +504,7 @@ impl ClientBuilder {
     ///
     /// This requires one of the optional features `native-tls` or
     /// `rustls-tls` to be enabled.
-    #[cfg(any(
-        feature = "native-tls",
-        feature = "rustls-tls",
-    ))]
+    #[cfg(any(feature = "native-tls", feature = "rustls-tls",))]
     pub fn use_preconfigured_tls(self, tls: impl Any) -> ClientBuilder {
         self.with_inner(move |inner| inner.use_preconfigured_tls(tls))
     }
@@ -524,6 +519,18 @@ impl ClientBuilder {
     #[cfg(feature = "trust-dns")]
     pub fn trust_dns(self, enable: bool) -> ClientBuilder {
         self.with_inner(|inner| inner.trust_dns(enable))
+    }
+
+    /// Overrides the system DNS configs by using a DNS provider
+    ///
+    /// If the `trust-dns` feature is turned on, the default option is enabled.
+    ///
+    /// # Optional
+    ///
+    /// This requires the optional `trust-dns` feature to be enabled
+    #[cfg(feature = "trust-dns")]
+    pub fn dns_provider(self, dns_provider: DnsProvider) -> ClientBuilder {
+        self.with_inner(|inner| inner.dns_provider(dns_provider))
     }
 
     /// Disables the trust-dns async resolver.
@@ -698,7 +705,8 @@ struct InnerClientHandle {
 
 impl Drop for InnerClientHandle {
     fn drop(&mut self) {
-        let id = self.thread
+        let id = self
+            .thread
             .as_ref()
             .map(|h| h.thread().id())
             .expect("thread not dropped yet");
@@ -721,7 +729,12 @@ impl ClientHandle {
             .name("reqwest-internal-sync-runtime".into())
             .spawn(move || {
                 use tokio::runtime;
-                let mut rt = match runtime::Builder::new().basic_scheduler().enable_all().build().map_err(crate::error::builder) {
+                let mut rt = match runtime::Builder::new()
+                    .basic_scheduler()
+                    .enable_all()
+                    .build()
+                    .map_err(crate::error::builder)
+                {
                     Err(e) => {
                         if let Err(e) = spawn_tx.send(Err(e)) {
                             error!("Failed to communicate runtime creation failure: {:?}", e);
@@ -803,9 +816,7 @@ impl ClientHandle {
                 };
                 wait::timeout(f, timeout)
             } else {
-                let f = async move {
-                    rx.await.map_err(|_canceled| event_loop_panicked())
-                };
+                let f = async move { rx.await.map_err(|_canceled| event_loop_panicked()) };
                 wait::timeout(f, timeout)
             };
 

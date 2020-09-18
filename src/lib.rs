@@ -297,6 +297,8 @@ if_hyper! {
     pub mod cookie;
     #[cfg(feature = "trust-dns")]
     mod dns;
+    #[cfg(feature = "trust-dns")]
+    pub use crate::dns::DnsProvider;
     mod proxy;
     pub mod redirect;
     #[cfg(feature = "__tls")]
