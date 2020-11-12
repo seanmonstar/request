@@ -47,6 +47,12 @@ brotli = ["async-compression", "async-compression/brotli"]
 json = ["serde_json"]
 
 trust-dns = ["trust-dns-resolver"]
+trust-dns-over-tls = []
+trust-dns-over-openssl = ["trust-dns-resolver/dns-over-openssl","trust-dns-over-tls"]
+trust-dns-over-native-tls = ["trust-dns-resolver/dns-over-native-tls","trust-dns-over-tls"]
+trust-dns-over-rustls = ["trust-dns-resolver/dns-over-rustls","trust-dns-over-tls"]
+trust-dns-over-https = []
+trust-dns-over-https-rustls = ["trust-dns-resolver/dns-over-https-rustls","trust-dns-over-https"]
 
 stream = []
 

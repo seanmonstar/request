@@ -25,6 +25,10 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::time::Delay;
+#[cfg(feature = "trust-dns")]
+use crate::dns::{TrustDnsConfig, TrustDnsError};
+#[cfg(any(feature = "trust-dns-over-tls", feature = "trust-dns-over-https"))]
+use crate::dns::{DnsTransport};
 
 use log::debug;
 
@@ -103,6 +107,8 @@ struct Config {
     cookie_store: Option<cookie::CookieStore>,
     trust_dns: bool,
     error: Option<crate::Error>,
+    #[cfg(feature = "trust-dns")]
+    trust_dns_config: Option<Result<TrustDnsConfig, TrustDnsError>>,
 }
 
 impl Default for ClientBuilder {
@@ -154,6 +160,8 @@ impl ClientBuilder {
                 trust_dns: cfg!(feature = "trust-dns"),
                 #[cfg(feature = "cookies")]
                 cookie_store: None,
+                #[cfg(feature = "trust-dns")]
+                trust_dns_config: None,
             },
         }
     }
@@ -186,7 +194,7 @@ impl ClientBuilder {
             let http = match config.trust_dns {
                 false => HttpConnector::new_gai(),
                 #[cfg(feature = "trust-dns")]
-                true => HttpConnector::new_trust_dns()?,
+                true => HttpConnector::new_trust_dns(config.trust_dns_config)?,
                 #[cfg(not(feature = "trust-dns"))]
                 true => unreachable!("trust-dns shouldn't be enabled unless the feature is"),
             };
@@ -908,6 +916,169 @@ impl ClientBuilder {
             self
         }
     }
+
+    #[cfg(feature = "trust-dns")]
+    /// Sets the name servers for the [trust-dns](trust_dns_resolver) async resolver.
+    ///
+    /// # Example
+    ///
+    /// ``` rust
+    /// use std::net::{IpAddr, Ipv4Addr};
+    ///
+    /// // Public DNS resolver from Cloudflare
+    /// let ips = vec![
+    ///     IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)),
+    ///     IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)),
+    /// ];
+    /// let client_builder = reqwest::Client::builder().trust_dns_name_servers(&ips, 53);
+    /// ```
+    ///
+    /// # Optional
+    ///
+    /// This requires the optional `trust-dns` feature to be enabled.
+    pub fn trust_dns_name_servers(mut self, ips: &[IpAddr], port: u16) -> ClientBuilder {
+        match self.config.trust_dns_config {
+            Some(Err(_)) => (),
+            Some(Ok(ref mut config)) => {
+                config.ips = ips.to_vec();
+                config.port = port;
+            },
+            None => {
+                let mut config = TrustDnsConfig::new();
+                config.ips = ips.to_vec();
+                config.port = port;
+                self.config.trust_dns_config = Some(Ok(config));
+            }
+        }
+        self
+    }
+
+    #[cfg(feature = "trust-dns-over-tls")]
+    /// Enables DNS over TLS.
+    ///
+    /// # Example
+    ///
+    /// ``` rust
+    /// use std::net::{IpAddr, Ipv4Addr};
+    ///
+    /// // Public DNS resolver from Cloudflare
+    /// let ips = vec![
+    ///     IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)),
+    ///     IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)),
+    /// ];
+    /// let client_builder = reqwest::Client::builder()
+    ///     .trust_dns_name_servers(&ips, 853)
+    ///     .trust_dns_over_tls("cloudflare-dns.com");
+    /// ```
+    ///
+    /// # Optional
+    ///
+    /// This requires `trust-dns-over-openssl` or `trust-dns-over-native-tls` or
+    /// `trust-dns-over-rustls` feature to be enabled.
+    pub fn trust_dns_over_tls(mut self, tls_dns_name: &str) -> ClientBuilder {
+        match self.config.trust_dns_config {
+            Some(Err(_)) => (),
+            Some(Ok(ref mut config)) => {
+                config.transport = DnsTransport::Tls {
+                    tls_dns_name: tls_dns_name.to_owned(),
+                };
+            }
+            None => {
+                let mut config = TrustDnsConfig::new();
+                config.transport = DnsTransport::Tls {
+                    tls_dns_name: tls_dns_name.to_owned(),
+                };
+                self.config.trust_dns_config = Some(Ok(config));
+            }
+        }
+        self
+    }
+
+    #[cfg(feature = "trust-dns-over-https")]
+    /// Enables DNS over HTTPS.
+    ///
+    /// # Example
+    ///
+    /// ``` rust
+    /// use std::net::{IpAddr, Ipv4Addr};
+    ///
+    /// // Public DNS resolver from Cloudflare
+    /// let ips = vec![
+    ///     IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)),
+    ///     IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)),
+    /// ];
+    /// let client_builder = reqwest::Client::builder()
+    ///     .trust_dns_name_servers(&ips, 443)
+    ///     .trust_dns_over_https("cloudflare-dns.com");
+    /// ```
+    ///
+    /// # Optional
+    ///
+    /// This requires `trust-dns-over-https-rustls` feature to be enabled.
+    pub fn trust_dns_over_https(mut self, tls_dns_name: &str) -> ClientBuilder {
+        match self.config.trust_dns_config {
+            Some(Err(_)) => (),
+            Some(Ok(ref mut config)) => {
+                config.transport = DnsTransport::Https {
+                    tls_dns_name: tls_dns_name.to_owned(),
+                };
+            }
+            None => {
+                let mut config = TrustDnsConfig::new();
+                config.transport = DnsTransport::Https {
+                    tls_dns_name: tls_dns_name.to_owned(),
+                };
+                self.config.trust_dns_config = Some(Ok(config));
+            }
+        }
+        self
+    }
+
+
+    #[cfg(feature = "trust-dns")]
+    /// Sets domain of the entity querying results. If the name being looked
+    /// up is not a fully qualified domain name (FQDN), then this is the first
+    /// part appended to attempt a lookup.
+    ///
+    /// # Optional
+    ///
+    /// This requires the optional `trust-dns` feature to be enabled.
+    pub fn trust_dns_domain(mut self, domain: &str) -> ClientBuilder {
+        match self.config.trust_dns_config {
+            Some(Err(_)) => (),
+            Some(Ok(ref mut config)) => {
+                config.domain = Some(domain.to_owned());
+            },
+            None => {
+                let mut config = TrustDnsConfig::new();
+                config.domain = Some(domain.to_owned());
+                self.config.trust_dns_config = Some(Ok(config));
+            }
+        }
+        self
+    }
+
+    #[cfg(feature = "trust-dns")]
+    /// Adds additional search domains that are attempted if the name is not
+    /// found in `domain`.
+    ///
+    /// # Optional
+    ///
+    /// This requires the optional `trust-dns` feature to be enabled.
+    pub fn trust_dns_add_search_domain(mut self, search_domain: &str) -> ClientBuilder {
+        match self.config.trust_dns_config {
+            Some(Err(_)) => (),
+            Some(Ok(ref mut config)) => {
+                config.search_domains.push(search_domain.to_owned())
+            },
+            None => {
+                let mut config = TrustDnsConfig::new();
+                config.search_domains.push(search_domain.to_owned());
+                self.config.trust_dns_config = Some(Ok(config));
+            }
+        }
+        self
+    }
 }
 
 type HyperClient = hyper::Client<Connector, super::body::ImplStream>;
@@ -1214,6 +1385,13 @@ impl Config {
         #[cfg(all(feature = "native-tls-crate", feature = "rustls-tls"))]
         {
             f.field("tls_backend", &self.tls);
+        }
+
+        #[cfg(feature = "trust-dns")]
+        {
+            if let Some(ref c) = self.trust_dns_config {
+                f.field("trust_dns_config", c);
+            }
         }
     }
 }

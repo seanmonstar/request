@@ -21,9 +21,15 @@ use std::mem::MaybeUninit;
 use pin_project_lite::pin_project;
 
 #[cfg(feature = "trust-dns")]
-use crate::dns::TrustDnsResolver;
+use crate::dns::{TrustDnsResolver, TrustDnsConfig, TrustDnsError, DnsTransport};
+#[cfg(feature = "trust-dns")]
+use trust_dns_resolver::{config::{ResolverConfig, NameServerConfigGroup}, Name};
+#[cfg(feature = "trust-dns")]
+use std::str::FromStr;
 use crate::proxy::{Proxy, ProxyScheme};
 use crate::error::BoxError;
+#[cfg(feature = "trust-dns")]
+use crate::error::{builder};
 #[cfg(feature = "default-tls")]
 use self::native_tls_conn::NativeTlsConn;
 #[cfg(feature = "rustls-tls")]
@@ -42,8 +48,64 @@ impl HttpConnector {
     }
 
     #[cfg(feature = "trust-dns")]
-    pub(crate) fn new_trust_dns() -> crate::Result<HttpConnector> {
-        TrustDnsResolver::new()
+    pub(crate) fn new_trust_dns(
+        config: Option<Result<TrustDnsConfig, TrustDnsError>>,
+    ) -> crate::Result<HttpConnector> {
+        let resolver_config = match config {
+            Some(Ok(trust_dns_config)) => {
+                let ips = &trust_dns_config.ips;
+                let port = trust_dns_config.port;
+                let mut resolver_config = match trust_dns_config.transport {
+                    DnsTransport::UdpAndTcp => ResolverConfig::from_parts(
+                        None,
+                        vec![],
+                        NameServerConfigGroup::from_ips_clear(ips, port),
+                    ),
+                    #[cfg(feature = "trust-dns-over-tls")]
+                    DnsTransport::Tls { tls_dns_name } => ResolverConfig::from_parts(
+                        None,
+                        vec![],
+                        NameServerConfigGroup::from_ips_tls(ips, port, tls_dns_name),
+                    ),
+                    #[cfg(feature = "trust-dns-over-https")]
+                    DnsTransport::Https { tls_dns_name } => ResolverConfig::from_parts(
+                        None,
+                        vec![],
+                        NameServerConfigGroup::from_ips_https(ips, port, tls_dns_name),
+                    )
+                };
+
+                match trust_dns_config.domain {
+                    Some(domain) => {
+                        match Name::from_str(&domain) {
+                            Ok(name) => {
+                                resolver_config.set_domain(name);
+                            },
+                            Err(error) => {
+                                return Err(builder(error));
+                            }
+                        }
+                    },
+                    None => {},
+                };
+
+                for domain in trust_dns_config.search_domains.into_iter() {
+                    match Name::from_str(&domain) {
+                        Ok(name) => {
+                            resolver_config.add_search(name);
+                        },
+                        Err(error) => {
+                            return Err(builder(error));
+                        }
+                    }
+                };
+
+                Some(resolver_config)
+            },
+            Some(Err(error)) => return Err(builder(error.error)),
+            None => None,
+        };
+        TrustDnsResolver::new(resolver_config)
             .map(hyper::client::HttpConnector::new_with_resolver)
             .map(Self::TrustDns)
             .map_err(crate::error::builder)
