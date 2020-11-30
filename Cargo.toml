@@ -69,6 +69,7 @@ __rustls = ["hyper-rustls", "tokio-rustls", "rustls", "__tls"]
 __internal_proxy_sys_no_cache = []
 
 [dependencies]
+base64 = "0.13"
 http = "0.2"
 url = "2.2"
 bytes = "0.5"
@@ -79,7 +80,6 @@ mime_guess = "2.0"
 serde_json = { version = "1.0", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-base64 = "0.13"
 encoding_rs = "0.8"
 futures-core = { version = "0.3.0", default-features = false }
 futures-util = { version = "0.3.0", default-features = false }
