@@ -100,6 +100,55 @@ async fn response_bytes() {
 }
 
 #[tokio::test]
+async fn global_error_for_status() {
+    let _ = env_logger::try_init();
+
+    let server = server::http(move |_req| async {
+        http::Response::builder()
+            .status(404)
+            .body("Hello".into())
+            .expect("failed to build response with status code 404")
+    });
+
+    let client = Client::builder()
+        .error_for_status(true)
+        .build()
+        .expect("failed to build client with `error_for_status: true`");
+
+    let res = client
+        .get(&format!("http://{}/404.html", server.addr()))
+        .send()
+        .await
+        .expect_err("request should fail");
+
+    if let Some(status) = res.status() {
+        assert_eq!(status.as_u16(), 404_u16);
+    } else {
+        panic!("request should fail, because of an invalid status code");
+    }
+
+    // the `error_for_status` flag is disabled:
+    let client = Client::builder()
+        .error_for_status(false)
+        .build()
+        .expect("failed to build client with `error_for_status: false`");
+
+    let res = client
+        .get(&format!("http://{}/404.html", server.addr()))
+        .send()
+        .await
+        .expect("request should succeed");
+
+    assert_eq!(res.status().as_u16(), 404);
+    assert_eq!(
+        res.text()
+            .await
+            .expect("response body should be valid utf-8"),
+        "Hello".to_string()
+    );
+}
+
+#[tokio::test]
 #[cfg(feature = "json")]
 async fn response_json() {
     let _ = env_logger::try_init();

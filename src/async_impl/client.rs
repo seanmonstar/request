@@ -106,6 +106,7 @@ struct Config {
     cookie_store: Option<cookie::CookieStore>,
     trust_dns: bool,
     error: Option<crate::Error>,
+    error_for_status: bool,
 }
 
 impl Default for ClientBuilder {
@@ -157,6 +158,7 @@ impl ClientBuilder {
                 trust_dns: cfg!(feature = "trust-dns"),
                 #[cfg(feature = "cookies")]
                 cookie_store: None,
+                error_for_status: false,
             },
         }
     }
@@ -217,7 +219,6 @@ impl ClientBuilder {
                             id.add_to_native_tls(&mut tls)?;
                         }
                     }
-
 
                     Connector::new_default_tls(
                         http,
@@ -349,6 +350,7 @@ impl ClientBuilder {
                 request_timeout: config.timeout,
                 proxies,
                 proxies_maybe_http_auth,
+                error_for_status: config.error_for_status,
             }),
         })
     }
@@ -390,6 +392,7 @@ impl ClientBuilder {
         };
         self
     }
+
     /// Sets the default headers for every request.
     ///
     /// # Example
@@ -433,6 +436,12 @@ impl ClientBuilder {
         for (key, value) in headers.iter() {
             self.config.headers.insert(key, value.clone());
         }
+        self
+    }
+
+    /// Apply [`Response::error_for_status`] on every `Response` returned by the client.
+    pub fn error_for_status(mut self, enable: bool) -> ClientBuilder {
+        self.config.error_for_status = enable;
         self
     }
 
@@ -1238,6 +1247,7 @@ struct ClientRef {
     request_timeout: Option<Duration>,
     proxies: Arc<Vec<Proxy>>,
     proxies_maybe_http_auth: bool,
+    error_for_status: bool,
 }
 
 impl ClientRef {
@@ -1270,6 +1280,10 @@ impl ClientRef {
 
         if let Some(ref d) = self.request_timeout {
             f.field("timeout", d);
+        }
+
+        if self.error_for_status {
+            f.field("error_for_status", &true);
         }
     }
 }
@@ -1501,6 +1515,11 @@ impl Future for PendingRequest {
                 self.client.accepts,
                 self.timeout.take(),
             );
+
+            if self.client.error_for_status {
+                res.error_for_status_ref()?;
+            }
+
             return Poll::Ready(Ok(res));
         }
     }
