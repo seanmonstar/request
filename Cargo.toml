@@ -129,7 +129,8 @@ serde = { version = "1.0", features = ["derive"] }
 libflate = "1.0"
 brotli_crate = { package = "brotli", version = "3.3.0" }
 doc-comment = "0.3"
-tokio = { version = "0.2.0", default-features = false, features = ["macros"] }
+tokio = { version = "0.2.0", default-features = false, features = ["fs", "io-std", "macros"] }
+tokio-util = { version = "0.3", features = ["codec"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.7"
@@ -163,6 +164,11 @@ wasm-bindgen-test = "0.3"
 name = "blocking"
 path = "examples/blocking.rs"
 required-features = ["blocking"]
+
+[[example]]
+name = "big_file"
+path = "examples/big_file.rs"
+required-features = ["stream"]
 
 [[example]]
 name = "json_dynamic"
