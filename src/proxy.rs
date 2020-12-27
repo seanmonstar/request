@@ -842,8 +842,7 @@ fn extract_type_prefix(address: &str) -> Option<&str> {
     if let Some(indice) = address.find("://") {
         if indice == 0 {
             None
-        }
-        else {
+        } else {
             let prefix = &address[..indice];
             let contains_banned = prefix.contains(|c| c == ':' || c == '/');
 
@@ -853,8 +852,7 @@ fn extract_type_prefix(address: &str) -> Option<&str> {
                 None
             }
         }
-    }
-    else {
+    } else {
         None
     }
 }
@@ -1033,9 +1031,16 @@ mod tests {
         // set valid proxy
         let valid_proxies = get_sys_proxies(Some((1, String::from("http://127.0.0.1/"))));
         let valid_proxies_no_schema = get_sys_proxies(Some((1, String::from("127.0.0.1"))));
-        let valid_proxies_explicit_https = get_sys_proxies(Some((1, String::from("https://127.0.0.1/"))));
-        let multiple_proxies = get_sys_proxies(Some((1, String::from("http=127.0.0.1:8888;https=127.0.0.2:8888"))));
-        let multiple_proxies_explicit_schema = get_sys_proxies(Some((1, String::from("http=http://127.0.0.1:8888;https=https://127.0.0.2:8888"))));
+        let valid_proxies_explicit_https =
+            get_sys_proxies(Some((1, String::from("https://127.0.0.1/"))));
+        let multiple_proxies = get_sys_proxies(Some((
+            1,
+            String::from("http=127.0.0.1:8888;https=127.0.0.2:8888"),
+        )));
+        let multiple_proxies_explicit_schema = get_sys_proxies(Some((
+            1,
+            String::from("http=http://127.0.0.1:8888;https=https://127.0.0.2:8888"),
+        )));
 
         // reset user setting when guards drop
         drop(_g1);

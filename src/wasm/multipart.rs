@@ -90,7 +90,6 @@ impl Form {
     }
 
     pub(crate) fn to_form_data(&self) -> crate::Result<FormData> {
-
         let form = FormData::new()
             .map_err(crate::error::wasm)
             .map_err(crate::error::builder)?;

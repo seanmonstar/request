@@ -392,8 +392,7 @@ mod tests {
             .part("key3", Part::text("value3").file_name("filename"));
         form.inner.boundary = "boundary".to_string();
         let length = form.compute_length();
-        let expected =
-            "--boundary\r\n\
+        let expected = "--boundary\r\n\
              Content-Disposition: form-data; name=\"reader1\"\r\n\r\n\
              \r\n\
              --boundary\r\n\
@@ -429,8 +428,7 @@ mod tests {
             .part("key3", Part::text("value3").file_name("filename"));
         form.inner.boundary = "boundary".to_string();
         let length = form.compute_length();
-        let expected =
-            "--boundary\r\n\
+        let expected = "--boundary\r\n\
              Content-Disposition: form-data; name=\"key1\"\r\n\r\n\
              value1\r\n\
              --boundary\r\n\

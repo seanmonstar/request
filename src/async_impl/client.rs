@@ -1,7 +1,4 @@
-#[cfg(any(
-    feature = "native-tls",
-    feature = "__rustls",
-))]
+#[cfg(any(feature = "native-tls", feature = "__rustls",))]
 use std::any::Any;
 use std::convert::TryInto;
 use std::net::IpAddr;
@@ -21,13 +18,13 @@ use http::Uri;
 use hyper::client::ResponseFuture;
 #[cfg(feature = "native-tls-crate")]
 use native_tls_crate::TlsConnector;
+use pin_project_lite::pin_project;
 #[cfg(feature = "rustls-tls-native-roots")]
 use rustls::RootCertStore;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::time::Delay;
-use pin_project_lite::pin_project;
 
 use log::debug;
 
@@ -222,7 +219,6 @@ impl ClientBuilder {
                         }
                     }
 
-
                     Connector::new_default_tls(
                         http,
                         tls,
@@ -231,27 +227,25 @@ impl ClientBuilder {
                         config.local_address,
                         config.nodelay,
                     )?
-                },
+                }
                 #[cfg(feature = "native-tls")]
-                TlsBackend::BuiltNativeTls(conn) => {
-                    Connector::from_built_default_tls(
-                        http,
-                        conn,
-                        proxies.clone(),
-                        user_agent(&config.headers),
-                        config.local_address,
-                        config.nodelay)
-                },
+                TlsBackend::BuiltNativeTls(conn) => Connector::from_built_default_tls(
+                    http,
+                    conn,
+                    proxies.clone(),
+                    user_agent(&config.headers),
+                    config.local_address,
+                    config.nodelay,
+                ),
                 #[cfg(feature = "__rustls")]
-                TlsBackend::BuiltRustls(conn) => {
-                    Connector::new_rustls_tls(
-                        http,
-                        conn,
-                        proxies.clone(),
-                        user_agent(&config.headers),
-                        config.local_address,
-                        config.nodelay)
-                },
+                TlsBackend::BuiltRustls(conn) => Connector::new_rustls_tls(
+                    http,
+                    conn,
+                    proxies.clone(),
+                    user_agent(&config.headers),
+                    config.local_address,
+                    config.nodelay,
+                ),
                 #[cfg(feature = "__rustls")]
                 TlsBackend::Rustls => {
                     use crate::tls::NoVerifier;
@@ -292,16 +286,13 @@ impl ClientBuilder {
                         config.local_address,
                         config.nodelay,
                     )
-                },
-                #[cfg(any(
-                    feature = "native-tls",
-                    feature = "__rustls",
-                ))]
+                }
+                #[cfg(any(feature = "native-tls", feature = "__rustls",))]
                 TlsBackend::UnknownPreconfigured => {
                     return Err(crate::error::builder(
-                        "Unknown TLS backend passed to `use_preconfigured_tls`"
+                        "Unknown TLS backend passed to `use_preconfigured_tls`",
                     ));
-                },
+                }
             }
 
             #[cfg(not(feature = "__tls"))]
@@ -733,8 +724,8 @@ impl ClientBuilder {
     ///
     /// If `None`, the option will not be set.
     pub fn tcp_keepalive<D>(mut self, val: D) -> ClientBuilder
-        where
-            D: Into<Option<Duration>>,
+    where
+        D: Into<Option<Duration>>,
     {
         self.config.tcp_keepalive = val.into();
         self
@@ -860,15 +851,14 @@ impl ClientBuilder {
     ///
     /// This requires one of the optional features `native-tls` or
     /// `rustls-tls(-...)` to be enabled.
-    #[cfg(any(
-        feature = "native-tls",
-        feature = "__rustls",
-    ))]
+    #[cfg(any(feature = "native-tls", feature = "__rustls",))]
     pub fn use_preconfigured_tls(mut self, tls: impl Any) -> ClientBuilder {
         let mut tls = Some(tls);
         #[cfg(feature = "native-tls")]
         {
-            if let Some(conn) = (&mut tls as &mut dyn Any).downcast_mut::<Option<native_tls_crate::TlsConnector>>() {
+            if let Some(conn) =
+                (&mut tls as &mut dyn Any).downcast_mut::<Option<native_tls_crate::TlsConnector>>()
+            {
                 let tls = conn.take().expect("is definitely Some");
                 let tls = crate::tls::TlsBackend::BuiltNativeTls(tls);
                 self.config.tls = tls;
@@ -877,8 +867,9 @@ impl ClientBuilder {
         }
         #[cfg(feature = "__rustls")]
         {
-            if let Some(conn) = (&mut tls as &mut dyn Any).downcast_mut::<Option<rustls::ClientConfig>>() {
-
+            if let Some(conn) =
+                (&mut tls as &mut dyn Any).downcast_mut::<Option<rustls::ClientConfig>>()
+            {
                 let tls = conn.take().expect("is definitely Some");
                 let tls = crate::tls::TlsBackend::BuiltRustls(tls);
                 self.config.tls = tls;
@@ -922,7 +913,7 @@ impl ClientBuilder {
     }
 
     /// Restrict the Client to be used with HTTPS only requests.
-    /// 
+    ///
     /// Defaults to false.
     pub fn https_only(mut self, enabled: bool) -> ClientBuilder {
         self.config.https_only = enabled;
@@ -1394,8 +1385,8 @@ impl Future for PendingRequest {
                         .map(|cookie| cookie.into_inner().into_owned())
                         .peekable();
                     if cookies.peek().is_some() {
-                      let mut store = store_wrapper.write().unwrap();
-                      store.0.store_response_cookies(cookies, &self.url);
+                        let mut store = store_wrapper.write().unwrap();
+                        store.0.store_response_cookies(cookies, &self.url);
                     }
                 }
             }
@@ -1566,7 +1557,8 @@ fn add_cookie_header(headers: &mut HeaderMap, cookie_store: &cookie::CookieStore
 
 #[cfg(feature = "rustls-tls-native-roots")]
 lazy_static! {
-    static ref NATIVE_ROOTS: std::io::Result<RootCertStore> = rustls_native_certs::load_native_certs().map_err(|e| e.1);
+    static ref NATIVE_ROOTS: std::io::Result<RootCertStore> =
+        rustls_native_certs::load_native_certs().map_err(|e| e.1);
 }
 
 #[cfg(test)]

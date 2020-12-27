@@ -185,11 +185,7 @@ impl Decoder {
     /// how to decode the content body of the request.
     ///
     /// Uses the correct variant by inspecting the Content-Encoding header.
-    pub(super) fn detect(
-        _headers: &mut HeaderMap,
-        body: Body,
-        _accepts: Accepts,
-    ) -> Decoder {
+    pub(super) fn detect(_headers: &mut HeaderMap, body: Body, _accepts: Accepts) -> Decoder {
         #[cfg(feature = "gzip")]
         {
             if _accepts.gzip && Decoder::detect_gzip(_headers) {

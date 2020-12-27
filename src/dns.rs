@@ -1,8 +1,8 @@
 use std::future::Future;
+use std::io;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{self, Poll};
-use std::io;
 
 use hyper::client::connect::dns as hyper_dns;
 use hyper::service::Service;
@@ -18,7 +18,8 @@ use crate::error::BoxError;
 type SharedResolver = Arc<AsyncResolver<TokioConnection, TokioConnectionProvider>>;
 
 lazy_static! {
-    static ref SYSTEM_CONF: io::Result<(ResolverConfig, ResolverOpts)> = system_conf::read_system_conf().map_err(io::Error::from);
+    static ref SYSTEM_CONF: io::Result<(ResolverConfig, ResolverOpts)> =
+        system_conf::read_system_conf().map_err(io::Error::from);
 }
 
 #[derive(Clone)]
@@ -65,7 +66,7 @@ impl Service<hyper_dns::Name> for TrustDnsResolver {
                     let resolver = new_resolver(tokio::runtime::Handle::current()).await?;
                     *lock = State::Ready(resolver.clone());
                     resolver
-                },
+                }
                 State::Ready(resolver) => resolver.clone(),
             };
 

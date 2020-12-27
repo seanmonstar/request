@@ -1,8 +1,8 @@
 use std::fmt;
 
 use bytes::Bytes;
-use js_sys::Uint8Array;
 use http::{HeaderMap, StatusCode};
+use js_sys::Uint8Array;
 use url::Url;
 
 #[cfg(feature = "json")]
@@ -17,10 +17,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub(super) fn new(
-        res: http::Response<web_sys::Response>,
-        url: Url,
-    ) -> Response {
+    pub(super) fn new(res: http::Response<web_sys::Response>, url: Url) -> Response {
         Response {
             http: res,
             url: Box::new(url),
@@ -85,7 +82,10 @@ impl Response {
 
     /// Get the response text.
     pub async fn text(self) -> crate::Result<String> {
-        let p = self.http.body().text()
+        let p = self
+            .http
+            .body()
+            .text()
             .map_err(crate::error::wasm)
             .map_err(crate::error::decode)?;
         let js_val = super::promise::<wasm_bindgen::JsValue>(p)
@@ -100,7 +100,10 @@ impl Response {
 
     /// Get the response as bytes
     pub async fn bytes(self) -> crate::Result<Bytes> {
-        let p = self.http.body().array_buffer()
+        let p = self
+            .http
+            .body()
+            .array_buffer()
             .map_err(crate::error::wasm)
             .map_err(crate::error::decode)?;
 

@@ -6,7 +6,6 @@ use std::time::Duration;
 
 use tokio::time::Instant;
 
-
 pub(crate) fn timeout<F, I, E>(fut: F, timeout: Option<Duration>) -> Result<I, Waited<E>>
 where
     F: Future<Output = Result<I, E>>,
@@ -40,7 +39,11 @@ where
                 return Err(Waited::TimedOut(crate::error::TimedOut));
             }
 
-            log::trace!("({:?}) park timeout {:?}", thread::current().id(), deadline - now);
+            log::trace!(
+                "({:?}) park timeout {:?}",
+                thread::current().id(),
+                deadline - now
+            );
             thread::park_timeout(deadline - now);
         } else {
             log::trace!("({:?}) park without timeout", thread::current().id());

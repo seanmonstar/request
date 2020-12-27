@@ -92,7 +92,7 @@ impl Body {
     /// Converts streamed requests to their buffered equivalent and
     /// returns a reference to the buffer. If the request is already
     /// buffered, this has no effect.
-    /// 
+    ///
     /// Be aware that for large requests this method is expensive
     /// and may cause your program to run out of memory.
     pub fn buffer(&mut self) -> Result<&[u8], crate::Error> {
@@ -103,11 +103,10 @@ impl Body {
                 } else {
                     Vec::new()
                 };
-                io::copy(reader, &mut bytes)
-                    .map_err(crate::error::builder)?;
+                io::copy(reader, &mut bytes).map_err(crate::error::builder)?;
                 self.kind = Kind::Bytes(bytes.into());
                 self.buffer()
-            },
+            }
             Kind::Bytes(ref bytes) => Ok(bytes.as_ref()),
         }
     }
@@ -290,14 +289,14 @@ async fn send_future(sender: Sender) -> Result<(), crate::Error> {
                 buf.reserve(8192);
                 // zero out the reserved memory
                 unsafe {
-                    let uninit = mem::transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(buf.bytes_mut());
+                    let uninit =
+                        mem::transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(buf.bytes_mut());
                     ptr::write_bytes(uninit.as_mut_ptr(), 0, uninit.len());
                 }
             }
 
-            let bytes = unsafe {
-                mem::transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(buf.bytes_mut())
-            };
+            let bytes =
+                unsafe { mem::transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(buf.bytes_mut()) };
             match body.read(bytes) {
                 Ok(0) => {
                     // The buffer was empty and nothing's left to

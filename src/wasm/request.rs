@@ -2,11 +2,11 @@ use std::convert::TryFrom;
 use std::fmt;
 
 use http::{request::Parts, Method, Request as HttpRequest};
-use url::Url;
+use serde::Serialize;
 #[cfg(feature = "json")]
 use serde_json;
-use serde::Serialize;
 use serde_urlencoded;
+use url::Url;
 
 use super::{Body, Client, Response};
 use crate::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE};
@@ -180,7 +180,6 @@ impl RequestBuilder {
         let header_value = format!("Bearer {}", token);
         self.header(crate::header::AUTHORIZATION, header_value)
     }
-
 
     /// Set the request body.
     pub fn body<T: Into<Body>>(mut self, body: T) -> RequestBuilder {
