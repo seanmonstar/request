@@ -350,7 +350,7 @@ impl Response {
             timeout,
             _thread_handle,
         } = self;
-        inner.error_for_status().map(move |inner| Response {
+        inner.error_for_status().map(|inner| Response {
             inner,
             body,
             timeout,

@@ -77,7 +77,7 @@ impl Form {
     where
         T: Into<Cow<'static, str>>,
     {
-        self.with_inner(move |inner| inner.part(name, part))
+        self.with_inner(|inner| inner.part(name, part))
     }
 
     fn with_inner<F>(self, func: F) -> Self
@@ -162,7 +162,7 @@ impl Part {
 
     // Re-export when mime 0.4 is available, with split MediaType/MediaRange.
     fn mime(self, mime: Mime) -> Part {
-        self.with_inner(move |inner| inner.mime(mime))
+        self.with_inner(|inner| inner.mime(mime))
     }
 
     /// Sets the filename, builder style.
@@ -170,7 +170,7 @@ impl Part {
     where
         T: Into<Cow<'static, str>>,
     {
-        self.with_inner(move |inner| inner.file_name(filename))
+        self.with_inner(|inner| inner.file_name(filename))
     }
 
     fn with_inner<F>(self, func: F) -> Self

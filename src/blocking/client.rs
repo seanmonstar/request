@@ -125,7 +125,7 @@ impl ClientBuilder {
         V: TryInto<HeaderValue>,
         V::Error: Into<http::Error>,
     {
-        self.with_inner(move |inner| inner.user_agent(value))
+        self.with_inner(|inner| inner.user_agent(value))
     }
 
     /// Sets the default headers for every request.
@@ -167,7 +167,7 @@ impl ClientBuilder {
     /// # }
     /// ```
     pub fn default_headers(self, headers: header::HeaderMap) -> ClientBuilder {
-        self.with_inner(move |inner| inner.default_headers(headers))
+        self.with_inner(|inner| inner.default_headers(headers))
     }
 
     /// Enable a persistent cookie store for the client.
@@ -247,7 +247,7 @@ impl ClientBuilder {
     ///
     /// Default will follow redirects up to a maximum of 10.
     pub fn redirect(self, policy: redirect::Policy) -> ClientBuilder {
-        self.with_inner(move |inner| inner.redirect(policy))
+        self.with_inner(|inner| inner.redirect(policy))
     }
 
     /// Enable or disable automatic setting of the `Referer` header.
@@ -265,14 +265,14 @@ impl ClientBuilder {
     ///
     /// Adding a proxy will disable the automatic usage of the "system" proxy.
     pub fn proxy(self, proxy: Proxy) -> ClientBuilder {
-        self.with_inner(move |inner| inner.proxy(proxy))
+        self.with_inner(|inner| inner.proxy(proxy))
     }
 
     /// Clear all `Proxies`, so `Client` will use no proxy anymore.
     ///
     /// This also disables the automatic usage of the "system" proxy.
     pub fn no_proxy(self) -> ClientBuilder {
-        self.with_inner(move |inner| inner.no_proxy())
+        self.with_inner(|inner| inner.no_proxy())
     }
 
     #[doc(hidden)]
@@ -318,7 +318,7 @@ impl ClientBuilder {
     ///
     /// [log]: https://crates.io/crates/log
     pub fn connection_verbose(self, verbose: bool) -> ClientBuilder {
-        self.with_inner(move |inner| inner.connection_verbose(verbose))
+        self.with_inner(|inner| inner.connection_verbose(verbose))
     }
 
     // HTTP options
@@ -337,7 +337,7 @@ impl ClientBuilder {
 
     /// Sets the maximum idle connection per host allowed in the pool.
     pub fn pool_max_idle_per_host(self, max: usize) -> ClientBuilder {
-        self.with_inner(move |inner| inner.pool_max_idle_per_host(max))
+        self.with_inner(|inner| inner.pool_max_idle_per_host(max))
     }
 
     #[doc(hidden)]
@@ -388,7 +388,7 @@ impl ClientBuilder {
     //
     // TODO(v0.11.x): Remove trailing underscore.
     pub fn tcp_nodelay_(self, enabled: bool) -> ClientBuilder {
-        self.with_inner(move |inner| inner.tcp_nodelay_(enabled))
+        self.with_inner(|inner| inner.tcp_nodelay_(enabled))
     }
 
     /// Bind to a local IP Address.
@@ -406,7 +406,7 @@ impl ClientBuilder {
     where
         T: Into<Option<IpAddr>>,
     {
-        self.with_inner(move |inner| inner.local_address(addr))
+        self.with_inner(|inner| inner.local_address(addr))
     }
 
     /// Set that all sockets have `SO_KEEPALIVE` set with the supplied duration.
@@ -416,7 +416,7 @@ impl ClientBuilder {
         where
             D: Into<Option<Duration>>,
     {
-        self.with_inner(move |inner| inner.tcp_keepalive(val))
+        self.with_inner(|inner| inner.tcp_keepalive(val))
     }
 
     // TLS options
@@ -454,13 +454,13 @@ impl ClientBuilder {
     /// feature to be enabled.
     #[cfg(feature = "__tls")]
     pub fn add_root_certificate(self, cert: Certificate) -> ClientBuilder {
-        self.with_inner(move |inner| inner.add_root_certificate(cert))
+        self.with_inner(|inner| inner.add_root_certificate(cert))
     }
 
     /// Sets the identity to be used for client certificate authentication.
     #[cfg(feature = "__tls")]
     pub fn identity(self, identity: Identity) -> ClientBuilder {
-        self.with_inner(move |inner| inner.identity(identity))
+        self.with_inner(|inner| inner.identity(identity))
     }
 
     /// Controls the use of hostname verification.
@@ -508,7 +508,7 @@ impl ClientBuilder {
     /// This requires the optional `native-tls` feature to be enabled.
     #[cfg(feature = "native-tls")]
     pub fn use_native_tls(self) -> ClientBuilder {
-        self.with_inner(move |inner| inner.use_native_tls())
+        self.with_inner(|inner| inner.use_native_tls())
     }
 
     /// Force using the Rustls TLS backend.
@@ -521,7 +521,7 @@ impl ClientBuilder {
     /// This requires the optional `rustls-tls(-...)` feature to be enabled.
     #[cfg(feature = "__rustls")]
     pub fn use_rustls_tls(self) -> ClientBuilder {
-        self.with_inner(move |inner| inner.use_rustls_tls())
+        self.with_inner(|inner| inner.use_rustls_tls())
     }
 
     /// Use a preconfigured TLS backend.
@@ -547,7 +547,7 @@ impl ClientBuilder {
         feature = "__rustls",
     ))]
     pub fn use_preconfigured_tls(self, tls: impl Any) -> ClientBuilder {
-        self.with_inner(move |inner| inner.use_preconfigured_tls(tls))
+        self.with_inner(|inner| inner.use_preconfigured_tls(tls))
     }
 
     /// Enables the [trust-dns](trust_dns_resolver) async resolver instead of a default threadpool using `getaddrinfo`.
@@ -688,7 +688,7 @@ impl Client {
     ///
     /// This method fails whenever supplied `Url` cannot be parsed.
     pub fn request<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
-        let req = url.into_url().map(move |url| Request::new(method, url));
+        let req = url.into_url().map(|url| Request::new(method, url));
         RequestBuilder::new(self.clone(), req)
     }
 
