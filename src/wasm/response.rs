@@ -124,7 +124,7 @@ impl Response {
     /// Convert the response into a `Stream` of `Bytes` from the body.
     #[cfg(feature = "stream")]
     pub fn bytes_stream(self) -> impl futures_core::Stream<Item = crate::Result<Bytes>> {
-        let body = ReadableStream::from_raw(self.http.into_body().dyn_into().unwrap_throw());
+        let body = ReadableStream::from_raw(self.http.into_body().body().unwrap().unchecked_into());
 
         body.into_stream().map(|buf_js| {
             let buffer = Uint8Array::new(&buf_js.map_err(crate::error::wasm).map_err(crate::error::decode)?);

@@ -159,6 +159,7 @@ features = [
     "RequestInit",
     "RequestMode",
     "Response",
+    "ReadableStream",
     "Window",
     "FormData",
     "Blob",
