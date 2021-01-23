@@ -54,7 +54,7 @@ multipart = ["mime_guess"]
 
 trust-dns = ["trust-dns-resolver"]
 
-stream = []
+stream = ["wasm-streams"]
 
 socks = ["tokio-socks"]
 
@@ -147,6 +147,9 @@ winreg = "0.7"
 js-sys = "0.3.45"
 wasm-bindgen = { version = "0.2.68", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.18"
+futures = { version = "0.3.0", default-features = false }
+futures-core = { version = "0.3.0", default-features = false }
+wasm-streams = { version = "0.1.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
 version = "0.3.25"
