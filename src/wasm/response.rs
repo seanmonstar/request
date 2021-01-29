@@ -12,7 +12,7 @@ use wasm_streams::{ReadableStream};
 #[cfg(feature = "stream")]
 use futures::StreamExt;
 #[cfg(feature = "stream")]
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::JsCast;
 
 
 /// A Response to a submitted `Request`.

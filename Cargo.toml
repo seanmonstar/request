@@ -1,5 +1,5 @@
 [package]
-name = "reqwest"
+name = "reqwest-wasm"
 version = "0.11.0" # remember to update html_root_url
 description = "higher level HTTP client library"
 keywords = ["http", "request", "client"]
