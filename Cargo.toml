@@ -4,7 +4,7 @@ version = "0.11.0" # remember to update html_root_url
 description = "higher level HTTP client library"
 keywords = ["http", "request", "client"]
 categories = ["web-programming::http-client", "wasm"]
-repository = "https://github.com/seanmonstar/reqwest"
+repository = "https://github.com/samdenty/reqwest"
 documentation = "https://docs.rs/reqwest"
 authors = ["Sean McArthur <sean@seanmonstar.com>"]
 readme = "README.md"
@@ -17,12 +17,7 @@ all-features = true
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 
 [package.metadata.playground]
-features = [
-    "blocking",
-    "cookies",
-    "json",
-    "multipart",
-]
+features = ["blocking", "cookies", "json", "multipart"]
 
 [features]
 default = ["default-tls"]
@@ -131,7 +126,14 @@ trust-dns-resolver = { version = "0.20", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 env_logger = "0.8"
-hyper = { version = "0.14", default-features = false, features = ["tcp", "stream", "http1", "http2", "client", "server"] }
+hyper = { version = "0.14", default-features = false, features = [
+    "tcp",
+    "stream",
+    "http1",
+    "http2",
+    "client",
+    "server",
+] }
 serde = { version = "1.0", features = ["derive"] }
 libflate = "1.0"
 brotli_crate = { package = "brotli", version = "3.3.0" }
