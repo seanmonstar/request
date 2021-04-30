@@ -82,7 +82,10 @@ pub use self::response::Response;
 /// **NOTE**: This function creates a new internal `Client` on each call,
 /// and so should not be used if making many requests. Create a
 /// [`Client`](./struct.Client.html) instead.
-///
+/// 
+/// Please make sure you are not running the blocking client inside the Tokio Runtime,
+/// otherwise it will panic.
+/// 
 /// # Examples
 ///
 /// ```rust
