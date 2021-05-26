@@ -158,6 +158,8 @@ features = [
     "Request",
     "RequestInit",
     "RequestMode",
+    "AbortController",
+    "AbortSignal",
     "Response",
     "Window",
     "FormData",

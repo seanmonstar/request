@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use std::fmt;
+use std::time::Duration;
 
 use http::{request::Parts, Method, Request as HttpRequest};
 use serde::Serialize;
@@ -20,6 +21,7 @@ pub struct Request {
     body: Option<Body>,
     pub(super) cors: bool,
     pub(super) credentials: Option<RequestCredentials>,
+    timeout: Option<Duration>,
 }
 
 /// A builder to construct the properties of a `Request`.
@@ -39,6 +41,7 @@ impl Request {
             body: None,
             cors: true,
             credentials: None,
+            timeout: None,
         }
     }
 
@@ -88,6 +91,18 @@ impl Request {
     #[inline]
     pub fn body_mut(&mut self) -> &mut Option<Body> {
         &mut self.body
+    }
+
+    /// Get the timeout.
+    #[inline]
+    pub fn timeout(&self) -> Option<&Duration> {
+        self.timeout.as_ref()
+    }
+
+    /// Get a mutable reference to the timeout.
+    #[inline]
+    pub fn timeout_mut(&mut self) -> &mut Option<Duration> {
+        &mut self.timeout
     }
 }
 
@@ -185,6 +200,18 @@ impl RequestBuilder {
     {
         let header_value = format!("Bearer {}", token);
         self.header(crate::header::AUTHORIZATION, header_value)
+    }
+
+    /// Enables a request timeout.
+    ///
+    /// The timeout is applied from when the request starts connecting until the
+    /// response body has finished. It affects only this request and overrides
+    /// the timeout configured using `ClientBuilder::timeout()`.
+    pub fn timeout(mut self, timeout: Duration) -> RequestBuilder {
+        if let Ok(ref mut req) = self.request {
+            *req.timeout_mut() = Some(timeout);
+        }
+        self
     }
 
     /// Set the request body.
@@ -384,6 +411,7 @@ where
             body: Some(body.into()),
             cors: true,
             credentials: None,
+            timeout: None,
         })
     }
 }
