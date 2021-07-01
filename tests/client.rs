@@ -106,6 +106,37 @@ async fn response_bytes() {
 }
 
 #[tokio::test]
+async fn chunked_body() {
+    let _ = env_logger::try_init();
+
+    let server = server::http(move |_req| async { http::Response::default() });
+
+    let client = Client::new();
+    let (sender, body) = reqwest::Body::channel();
+
+    let send = client
+        .post(&format!("http://{}/bytes", server.addr()))
+        .body(body)
+        .send();
+
+    tokio::spawn(async move {
+        let mut sender = sender;
+
+        sender
+            .send_data("Hello ".into())
+            .await
+            .expect("failed to send data");
+        sender
+            .send_data("World.".into())
+            .await
+            .expect("failed to send data");
+    });
+
+    let res = send.await.expect("Failed to post");
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+}
+
+#[tokio::test]
 #[cfg(feature = "json")]
 async fn response_json() {
     let _ = env_logger::try_init();

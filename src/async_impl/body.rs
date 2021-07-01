@@ -14,6 +14,22 @@ pub struct Body {
     inner: Inner,
 }
 
+/// A sender half created through [`Body::channel()`].
+///
+/// Useful when wanting to stream chunks from another thread.
+///
+/// ## Body Closing
+///
+/// Note that the request body will always be closed normally when the sender is dropped (meaning
+/// that the empty terminating chunk will be sent to the remote). If you desire to close the
+/// connection with an incomplete response (e.g. in the case of an error during asynchronous
+/// processing), call the [`Sender::abort()`] method to abort the body in an abnormal fashion.
+///
+/// [`Body::channel()`]: struct.Body.html#method.channel
+/// [`Sender::abort()`]: struct.Sender.html#method.abort
+#[must_use = "Sender does nothing unless sent on"]
+pub struct Sender(hyper::body::Sender);
+
 // The `Stream` trait isn't stable, so the impl isn't public.
 pub(crate) struct ImplStream(Body);
 
@@ -84,6 +100,15 @@ impl Body {
         Body::stream(stream)
     }
 
+    /// Create a `Body` stream with an associated sender half.
+    ///
+    /// Useful when wanting to stream chunks from another thread.
+    #[inline]
+    pub fn channel() -> (Sender, Body) {
+        let (hyper_sender, hyper_body) = hyper::Body::channel();
+        (Sender(hyper_sender), Body::wrap(hyper_body))
+    }
+
     pub(crate) fn stream<S>(stream: S) -> Body
     where
         S: futures_core::stream::TryStream + Send + Sync + 'static,
@@ -112,7 +137,6 @@ impl Body {
         }
     }
 
-    #[cfg(feature = "blocking")]
     pub(crate) fn wrap(body: hyper::Body) -> Body {
         Body {
             inner: Inner::Streaming {
@@ -211,6 +235,48 @@ impl From<&'static str> for Body {
 impl fmt::Debug for Body {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Body").finish()
+    }
+}
+
+impl Sender {
+    /// Check to see if this `Sender` can send more data.
+    pub fn poll_ready(
+        &mut self,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), Box<dyn std::error::Error>>> {
+        self.0.poll_ready(cx).map_err(Into::into)
+    }
+
+    /// Send data on data channel when it is ready.
+    pub async fn send_data(&mut self, chunk: Bytes) -> Result<(), Box<dyn std::error::Error>> {
+        self.0.send_data(chunk).await.map_err(Into::into)
+    }
+
+    /// Try to send data on this channel.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(Bytes)` if the channel could not (currently) accept
+    /// another `Bytes`.
+    ///
+    /// # Note
+    ///
+    /// This is mostly useful for when trying to send from some other thread
+    /// that doesn't have an async context. If in an async context, prefer
+    /// `send_data()` instead.
+    pub fn try_send_data(&mut self, chunk: Bytes) -> Result<(), Bytes> {
+        self.0.try_send_data(chunk).map_err(Into::into)
+    }
+
+    /// Aborts the body in an abnormal fashion.
+    pub fn abort(self) {
+        self.0.abort()
+    }
+}
+
+impl fmt::Debug for Sender {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Sender").finish()
     }
 }
 
