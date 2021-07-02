@@ -171,15 +171,8 @@ impl Response {
     /// # }
     /// ```
     pub async fn text_with_charset(self, default_encoding: &str) -> crate::Result<String> {
-        let content_type = self
-            .headers
-            .get(crate::header::CONTENT_TYPE)
-            .and_then(|value| value.to_str().ok())
-            .and_then(|value| value.parse::<Mime>().ok());
-        let encoding_name = content_type
-            .as_ref()
-            .and_then(|mime| mime.get_param("charset").map(|charset| charset.as_str()))
-            .unwrap_or(default_encoding);
+        let charset = self.charset();
+        let encoding_name = charset.as_deref().unwrap_or(default_encoding);
         let encoding = Encoding::for_label(encoding_name.as_bytes()).unwrap_or(UTF_8);
 
         let full = self.bytes().await?;
@@ -193,6 +186,19 @@ impl Response {
             // are already valid utf8
             Ok(String::from_utf8_unchecked(full.to_vec()))
         }
+    }
+
+    /// Return the encoding declared in the `Content-Type` header, if any.
+    ///
+    /// This can be used with a library such as [`encoding_rs`] to perform
+    /// manual decoding if `text` and `text_with_charset` are too restrictive.
+    ///
+    /// [`encoding_rs`]: https://docs.rs/encoding_rs
+    pub fn charset(&self) -> Option<String> {
+        let content_type = self.headers.get(crate::header::CONTENT_TYPE)?;
+        let mimetype = content_type.to_str().ok()?.parse::<Mime>().ok()?;
+        let charset = mimetype.get_param("charset")?;
+        Some(charset.to_string())
     }
 
     /// Try to deserialize the response body as JSON.

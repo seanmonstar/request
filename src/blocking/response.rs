@@ -302,6 +302,16 @@ impl Response {
         })
     }
 
+    /// Return the encoding declared in the `Content-Type` header, if any.
+    ///
+    /// This can be used with a library such as [`encoding_rs`] to perform
+    /// manual decoding if `text` and `text_with_charset` are too restrictive.
+    ///
+    /// [`encoding_rs`]: https://docs.rs/encoding_rs
+    pub fn charset(&self) -> Option<String> {
+        self.inner.charset()
+    }
+
     /// Copy the response body into a writer.
     ///
     /// This function internally uses [`std::io::copy`] and hence will continuously read data from
