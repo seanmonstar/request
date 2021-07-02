@@ -387,7 +387,7 @@ impl Response {
         if self.body.is_none() {
             let body = mem::replace(self.inner.body_mut(), async_impl::Decoder::empty());
 
-            let body = body.map_err(crate::error::into_io).into_async_read();
+            let body = body.map_err(|e| e.into()).into_async_read();
 
             self.body = Some(Box::pin(body));
         }
