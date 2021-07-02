@@ -74,7 +74,7 @@ mod wait;
 
 pub use self::body::Body;
 pub use self::client::{Client, ClientBuilder};
-pub use self::request::{Request, RequestBuilder};
+pub use self::request::{Request, RequestBuilder, DeprecatedRequestBuilder};
 pub use self::response::Response;
 
 /// Shortcut method to quickly make a *blocking* `GET` request.
