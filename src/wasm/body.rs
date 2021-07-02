@@ -24,6 +24,18 @@ enum Inner {
 }
 
 impl Body {
+    /// Returns a reference to the internal data of the `Body`.
+    ///
+    /// `None` is returned, if the underlying data is a multipart form.
+    #[inline]
+    pub fn as_bytes(&self) -> Option<&[u8]> {
+        match &self.inner {
+            Inner::Bytes(bytes) => Some(bytes.as_ref()),
+            #[cfg(feature = "multipart")]
+            Inner::Multipart(_) => None,
+        }
+    }
+    
     pub(crate) fn to_js_value(&self) -> crate::Result<JsValue> {
         match &self.inner {
             Inner::Bytes(body_bytes) => {
