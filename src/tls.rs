@@ -24,11 +24,13 @@ enum Cert {
 }
 
 /// Represents a private key and X509 cert as a client certificate.
+#[derive(Clone)]
 pub struct Identity {
     #[cfg_attr(not(any(feature = "native-tls", feature = "__rustls")), allow(unused))]
     inner: ClientCert,
 }
 
+#[derive(Clone)]
 enum ClientCert {
     #[cfg(feature = "native-tls")]
     Pkcs12(native_tls_crate::Identity),
