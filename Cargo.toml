@@ -119,8 +119,8 @@ webpki-roots = { version = "0.21", optional = true }
 rustls-native-certs = { version = "0.5", optional = true }
 
 ## cookies
-cookie_crate = { version = "0.14", package = "cookie", optional = true }
-cookie_store = { version = "0.12", optional = true }
+cookie_crate = { version = "0.15", package = "cookie", optional = true }
+cookie_store = { version = "0.15", optional = true }
 time = { version = "0.2.11", optional = true }
 
 ## compression
