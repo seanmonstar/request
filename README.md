@@ -63,6 +63,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+**NOTE**: Please have in mind that running Blocking Client client inside the Tokio Runtime will result into a panic.
+
 ## Requirements
 
 On Linux:

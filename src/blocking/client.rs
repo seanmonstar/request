@@ -11,6 +11,7 @@ use std::time::Duration;
 use http::header::HeaderValue;
 use log::{error, trace};
 use tokio::sync::{mpsc, oneshot};
+use tokio::runtime::Handle;
 
 use super::request::{Request, RequestBuilder};
 use super::response::Response;
@@ -79,6 +80,9 @@ impl ClientBuilder {
     ///
     /// This is the same as `Client::builder()`.
     pub fn new() -> ClientBuilder {
+        if Handle::try_current().is_ok() {
+            panic!("You should not run reqwest::blocking inside existing Tokio Runtime");
+        }
         ClientBuilder {
             inner: async_impl::ClientBuilder::new(),
             timeout: Timeout::default(),

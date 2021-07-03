@@ -276,7 +276,7 @@ fn test_appended_headers_not_overwritten() {
 
 #[cfg_attr(not(debug_assertions), ignore)]
 #[test]
-#[should_panic]
+#[should_panic(expected = "You should not run reqwest::blocking inside existing tokio runtime")]
 fn test_blocking_inside_a_runtime() {
     let server = server::http(move |_req| async { http::Response::new("Hello".into()) });
 
