@@ -91,6 +91,15 @@ impl Response {
     ///   the actual decoded length).
     pub fn content_length(&self) -> Option<u64> {
         use hyper::body::HttpBody;
+        use crate::header::CONTENT_LENGTH;
+
+        if let Some(value) = self.headers.get(CONTENT_LENGTH) {
+            if let Ok(value_str) = value.to_str() {
+                if let Ok(length) = value_str.parse::<u64>() {
+                    return Some(length)
+                }
+            }
+        }
 
         HttpBody::size_hint(&self.body).exact()
     }
