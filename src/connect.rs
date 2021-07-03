@@ -1175,7 +1175,7 @@ mod verbose {
                 } else if c == b'\0' {
                     write!(f, "\\0")?;
                 // ASCII printable
-                } else if c >= 0x20 && c < 0x7f {
+                } else if (0x20..0x7f).contains(&c) {
                     write!(f, "{}", c as char)?;
                 } else {
                     write!(f, "\\x{:02x}", c)?;

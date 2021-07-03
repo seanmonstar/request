@@ -724,6 +724,7 @@ lazy_static! {
 /// Returns:
 ///     System proxies information as a hashmap like
 ///     {"http": Url::parse("http://127.0.0.1:80"), "https": Url::parse("https://127.0.0.1:80")}
+#[allow(clippy::collapsible_match)]
 fn get_sys_proxies(
     #[cfg_attr(not(target_os = "windows"), allow(unused_variables))] registry_values: Option<
         RegistryProxyValues,
