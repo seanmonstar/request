@@ -87,4 +87,13 @@ mod tests {
             "builder error for url (file:///etc/hosts): URL scheme is not allowed"
         );
     }
+
+    if_hyper! {
+        #[test]
+        fn test_expect_uri_with_corner_case() {
+            let bad_url_string = "https://rust-lang.org\""; // trailing quote
+            let bad_url = bad_url_string.into_url().expect("bad url is a valid url (but not a valid uri)");
+            expect_uri(&bad_url); // boom
+        }
+    }
 }
