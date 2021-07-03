@@ -1182,7 +1182,25 @@ impl Client {
     ///
     /// This method fails whenever the supplied `Url` cannot be parsed.
     pub fn request<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
-        let req = url.into_url().map(move |url| Request::new(method, url));
+        let req = url.into_url().map(move |url| {
+            #[allow(unused_mut)]
+            let mut req = Request::new(method, url);
+
+            #[cfg(feature = "cookies")]
+            {
+                let url = req.url().clone();
+
+                {
+                    let headers = req.headers_mut();
+                    if let Some(cookie_store_wrapper) = self.inner.cookie_store.as_ref() {
+                        let cookie_store = cookie_store_wrapper.read().unwrap();
+                        add_cookie_header(headers, &cookie_store, &url);
+                    }
+                }
+            }
+
+            req
+        });
         RequestBuilder::new(self.clone(), req)
     }
 
