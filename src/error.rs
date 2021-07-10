@@ -9,6 +9,10 @@ use crate::{StatusCode, Url};
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// The Errors that may occur when processing a `Request`.
+///
+/// **By default, the full URL including query parameters is shown in the error message.** If your
+/// URLs include sensitive information like an API key, make sure to call [`Self::delete_url`] on
+/// errors before displaying them.
 pub struct Error {
     inner: Box<Inner>,
 }
@@ -126,6 +130,28 @@ impl Error {
         }
     }
 
+    /// Generate a printable error object which hides URL information.
+    ///
+    /// Useful if your URLs contain sensitive data, like API keys.
+    pub fn without_url(&self) -> impl fmt::Display + '_ {
+        struct WithoutUrl<'a>(&'a Inner);
+
+        impl fmt::Display for WithoutUrl<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                display_error(f, &self.0.kind, None, self.0.source.as_ref())
+            }
+        }
+
+        WithoutUrl(&self.inner)
+    }
+
+    /// Remove URL information from this error.
+    ///
+    /// Useful if your URLs contain sensitive data, like API keys.
+    pub fn delete_url(&mut self) {
+        self.inner.url = None;
+    }
+
     // private
 
     pub(crate) fn with_url(mut self, url: Url) -> Error {
@@ -156,44 +182,48 @@ impl fmt::Debug for Error {
     }
 }
 
+fn display_error(
+    f: &mut fmt::Formatter,
+    kind: &Kind,
+    url: Option<&Url>,
+    source: Option<&BoxError>,
+) -> fmt::Result {
+    match kind {
+        Kind::Builder => f.write_str("builder error")?,
+        Kind::Request => f.write_str("error sending request")?,
+        Kind::Body => f.write_str("request or response body error")?,
+        Kind::Decode => f.write_str("error decoding response body")?,
+        Kind::Redirect => f.write_str("error following redirect")?,
+        Kind::Status(code) => {
+            let prefix = if code.is_client_error() {
+                "HTTP status client error"
+            } else {
+                debug_assert!(code.is_server_error());
+                "HTTP status server error"
+            };
+            write!(f, "{} ({})", prefix, code)?;
+        }
+    };
+
+    if let Some(url) = url {
+        write!(f, " for url ({})", url.as_str())?;
+    }
+
+    if let Some(e) = source {
+        write!(f, ": {}", e)?;
+    }
+
+    Ok(())
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        struct ForUrl<'a>(Option<&'a Url>);
-
-        impl fmt::Display for ForUrl<'_> {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                if let Some(url) = self.0 {
-                    write!(f, " for url ({})", url.as_str())
-                } else {
-                    Ok(())
-                }
-            }
-        }
-
-        match self.inner.kind {
-            Kind::Builder => f.write_str("builder error")?,
-            Kind::Request => f.write_str("error sending request")?,
-            Kind::Body => f.write_str("request or response body error")?,
-            Kind::Decode => f.write_str("error decoding response body")?,
-            Kind::Redirect => f.write_str("error following redirect")?,
-            Kind::Status(ref code) => {
-                let prefix = if code.is_client_error() {
-                    "HTTP status client error"
-                } else {
-                    debug_assert!(code.is_server_error());
-                    "HTTP status server error"
-                };
-                write!(f, "{} ({})", prefix, code)?;
-            }
-        };
-
-        ForUrl(self.inner.url.as_ref()).fmt(f)?;
-
-        if let Some(ref e) = self.inner.source {
-            write!(f, ": {}", e)?;
-        }
-
-        Ok(())
+        display_error(
+            f,
+            &self.inner.kind,
+            self.inner.url.as_ref(),
+            self.inner.source.as_ref(),
+        )
     }
 }
 
@@ -351,5 +381,27 @@ mod tests {
         let io = io::Error::new(io::ErrorKind::Other, err);
         let nested = super::request(io);
         assert!(nested.is_timeout());
+    }
+
+    #[test]
+    fn without_url() {
+        let mut err = Error {
+            inner: Box::new(Inner {
+                kind: Kind::Request,
+                source: None,
+                url: Some("https://sensitive.com".parse().unwrap()),
+            }),
+        };
+
+        let original = err.to_string();
+        let without_url = err.without_url().to_string();
+        err.delete_url();
+        let deleted_url = err.to_string();
+        let deleted_url_without_url = err.without_url().to_string();
+
+        assert!(original.contains("sensitive"));
+        assert!(!without_url.contains("sensitive"));
+        assert_eq!(without_url, deleted_url);
+        assert_eq!(deleted_url, deleted_url_without_url);
     }
 }
